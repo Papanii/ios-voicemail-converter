@@ -57,4 +57,30 @@ class ValidationUtilTest {
         String validMixed = "AbCdEf1234567890aBcDeF1234567890AbCdEf12";
         assertTrue(ValidationUtil.isValidUdid(validMixed));
     }
+
+    @Test
+    void testValidUdidAppleFormat() {
+        // Real Apple device UUID format (8-4-4-4-4)
+        String appleUuid = "00008140-0001-688C-0213-001C";
+        assertTrue(ValidationUtil.isValidUdid(appleUuid));
+    }
+
+    @Test
+    void testValidUdidAppleFormatLowercase() {
+        String appleUuid = "00008140-0001-688c-0213-001c";
+        assertTrue(ValidationUtil.isValidUdid(appleUuid));
+    }
+
+    @Test
+    void testValidUdidAppleFormatMixedCase() {
+        String appleUuid = "00008140-0001-688C-0213-001c";
+        assertTrue(ValidationUtil.isValidUdid(appleUuid));
+    }
+
+    @Test
+    void testInvalidUdidWrongAppleFormat() {
+        // Wrong format: missing segment
+        String invalid = "00008140-0001-688C-0213";
+        assertFalse(ValidationUtil.isValidUdid(invalid));
+    }
 }
