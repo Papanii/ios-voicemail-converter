@@ -9,6 +9,9 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -50,8 +53,9 @@ class BackupDiscoveryTest {
 
     @Test
     void testDiscoverBackup_singleBackup() throws Exception {
-        // Given: Single backup directory with Info.plist
-        Path backupDir = createMockBackup(tempDir, "test-udid-123", "Test iPhone", "17.5");
+        // Given: Single backup directory with Info.plist (use valid 40-char hex UDID)
+        String validUdid = "1234567890abcdef1234567890abcdef12345678";
+        Path backupDir = createMockBackup(tempDir, validUdid, "Test iPhone", "17.5");
 
         Arguments args = new Arguments.Builder()
             .backupDir(tempDir)
@@ -63,16 +67,18 @@ class BackupDiscoveryTest {
 
         // Then: Should find the backup
         assertNotNull(backup);
-        assertEquals("test-udid-123", backup.getUdid());
+        assertEquals(validUdid, backup.getUdid());
         assertEquals("Test iPhone", backup.getDeviceName());
         assertEquals("17.5", backup.getProductVersion());
     }
 
     @Test
     void testDiscoverBackup_multipleBackups_noDeviceIdSpecified() throws Exception {
-        // Given: Multiple backup directories
-        createMockBackup(tempDir, "udid-1", "iPhone 12", "17.0");
-        createMockBackup(tempDir, "udid-2", "iPhone 13", "17.5");
+        // Given: Multiple backup directories (use valid 40-char hex UDIDs)
+        String udid1 = "1111111111111111111111111111111111111111";
+        String udid2 = "2222222222222222222222222222222222222222";
+        createMockBackup(tempDir, udid1, "iPhone 12", "17.0");
+        createMockBackup(tempDir, udid2, "iPhone 13", "17.5");
 
         Arguments args = new Arguments.Builder()
             .backupDir(tempDir)
@@ -90,14 +96,16 @@ class BackupDiscoveryTest {
 
     @Test
     void testDiscoverBackup_multipleBackups_deviceIdSpecified() throws Exception {
-        // Given: Multiple backup directories
-        createMockBackup(tempDir, "udid-1", "iPhone 12", "17.0");
-        createMockBackup(tempDir, "udid-2", "iPhone 13", "17.5");
+        // Given: Multiple backup directories (use valid 40-char hex UDIDs)
+        String udid1 = "1111111111111111111111111111111111111111";
+        String udid2 = "2222222222222222222222222222222222222222";
+        createMockBackup(tempDir, udid1, "iPhone 12", "17.0");
+        createMockBackup(tempDir, udid2, "iPhone 13", "17.5");
 
         Arguments args = new Arguments.Builder()
             .backupDir(tempDir)
             .outputDir(tempDir.resolve("output"))
-            .deviceId("udid-2")
+            .deviceId(udid2)
             .build();
 
         // When: Discover backup with device ID
@@ -105,19 +113,21 @@ class BackupDiscoveryTest {
 
         // Then: Should find the correct backup
         assertNotNull(backup);
-        assertEquals("udid-2", backup.getUdid());
+        assertEquals(udid2, backup.getUdid());
         assertEquals("iPhone 13", backup.getDeviceName());
     }
 
     @Test
     void testDiscoverBackup_deviceIdNotFound() throws Exception {
-        // Given: Backup directory with different UDID
-        createMockBackup(tempDir, "udid-1", "iPhone 12", "17.0");
+        // Given: Backup directory with different UDID (use valid 40-char hex UDID)
+        String existingUdid = "1111111111111111111111111111111111111111";
+        String nonExistentUdid = "9999999999999999999999999999999999999999";
+        createMockBackup(tempDir, existingUdid, "iPhone 12", "17.0");
 
         Arguments args = new Arguments.Builder()
             .backupDir(tempDir)
             .outputDir(tempDir.resolve("output"))
-            .deviceId("non-existent-udid")
+            .deviceId(nonExistentUdid)
             .build();
 
         // When/Then: Should throw exception
@@ -126,7 +136,7 @@ class BackupDiscoveryTest {
         });
 
         assertTrue(exception.getMessage().contains("No backup found for device ID"));
-        assertTrue(exception.getMessage().contains("non-existent-udid"));
+        assertTrue(exception.getMessage().contains(nonExistentUdid));
     }
 
     @Test
@@ -147,8 +157,9 @@ class BackupDiscoveryTest {
 
     @Test
     void testDiscoverBackup_skipsNonBackupDirectories() throws Exception {
-        // Given: Backup directory with non-backup subdirectories
-        Path backupDir = createMockBackup(tempDir, "valid-udid", "iPhone", "17.0");
+        // Given: Backup directory with non-backup subdirectories (use valid 40-char hex UDID)
+        String validUdid = "abcdef1234567890abcdef1234567890abcdef12";
+        Path backupDir = createMockBackup(tempDir, validUdid, "iPhone", "17.0");
         Files.createDirectory(tempDir.resolve("not-a-backup")); // Invalid directory name
         Files.createFile(tempDir.resolve("file.txt")); // File, not directory
 
@@ -162,13 +173,14 @@ class BackupDiscoveryTest {
 
         // Then: Should only find valid backup
         assertNotNull(backup);
-        assertEquals("valid-udid", backup.getUdid());
+        assertEquals(validUdid, backup.getUdid());
     }
 
     @Test
     void testDiscoverBackup_corruptedBackup() throws Exception {
-        // Given: Backup directory with corrupted Info.plist
-        Path backupDir = tempDir.resolve("test-udid");
+        // Given: Backup directory with corrupted Info.plist (use valid 40-char hex UDID)
+        String validUdid = "fedcba0987654321fedcba0987654321fedcba09";
+        Path backupDir = tempDir.resolve(validUdid);
         Files.createDirectories(backupDir);
         Files.writeString(backupDir.resolve("Info.plist"), "corrupted xml content");
 
@@ -229,8 +241,26 @@ class BackupDiscoveryTest {
 
         Files.writeString(backupDir.resolve("Manifest.plist"), manifestPlist);
 
-        // Create empty Manifest.db (required for validation)
-        Files.createFile(backupDir.resolve("Manifest.db"));
+        // Create Manifest.db with proper schema (required for validation)
+        Path manifestDb = backupDir.resolve("Manifest.db");
+        String url = "jdbc:sqlite:" + manifestDb.toString();
+        try (Connection conn = DriverManager.getConnection(url);
+             Statement stmt = conn.createStatement()) {
+            // Create Files table matching iOS backup schema
+            stmt.execute("""
+                CREATE TABLE Files (
+                    fileID TEXT PRIMARY KEY,
+                    domain TEXT,
+                    relativePath TEXT,
+                    file BLOB
+                )
+                """);
+            // Insert a test row so validation can verify database structure
+            stmt.execute("INSERT INTO Files (fileID, domain, relativePath) " +
+                        "VALUES ('test-file-id', 'HomeDomain', 'Library/test.db')");
+        } catch (Exception e) {
+            throw new IOException("Failed to create mock Manifest.db", e);
+        }
 
         return backupDir;
     }

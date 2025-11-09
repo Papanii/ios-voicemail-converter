@@ -56,7 +56,7 @@ class ErrorHandlingTest {
         ConfigurationException exception = new ConfigurationException(message);
 
         assertEquals(message, exception.getMessage());
-        assertEquals(1, exception.getExitCode());
+        assertEquals(2, exception.getExitCode());
     }
 
     @Test
@@ -76,9 +76,9 @@ class ErrorHandlingTest {
         String message = "FFmpeg conversion failed";
         ConversionException exception = new ConversionException(inputFile, message);
 
-        assertTrue(exception.getMessage().contains(message));
-        assertTrue(exception.getMessage().contains("test.amr"));
-        assertEquals(4, exception.getExitCode());
+        assertEquals(message, exception.getMessage());
+        assertEquals(inputFile, exception.getInputFile());
+        assertEquals(1, exception.getExitCode());
     }
 
     @Test
@@ -98,9 +98,9 @@ class ErrorHandlingTest {
         String message = "FFmpeg not found in PATH";
         DependencyException exception = new DependencyException(dependency, message);
 
-        assertTrue(exception.getMessage().contains("ffmpeg"));
-        assertTrue(exception.getMessage().contains(message));
-        assertEquals(5, exception.getExitCode());
+        assertEquals(message, exception.getMessage());
+        assertEquals(dependency, exception.getDependency());
+        assertEquals(6, exception.getExitCode());
         assertTrue(exception.hasSuggestion());
         assertTrue(exception.getSuggestion().contains("brew install ffmpeg") ||
                    exception.getSuggestion().contains("apt install ffmpeg"));
@@ -112,7 +112,7 @@ class ErrorHandlingTest {
 
         assertNotNull(exception.getMessage());
         assertTrue(exception.getMessage().contains("No voicemails found"));
-        assertEquals(2, exception.getExitCode());
+        assertEquals(5, exception.getExitCode());
     }
 
     @Test
@@ -189,11 +189,11 @@ class ErrorHandlingTest {
     void testExitCodes_areUnique() {
         // Verify each exception type has a unique exit code
         int[] exitCodes = {
-            new ConfigurationException("").getExitCode(),  // 1
-            new NoVoicemailsException().getExitCode(),     // 2
+            new ConfigurationException("").getExitCode(),  // 2
+            new NoVoicemailsException().getExitCode(),     // 5
             new BackupException("").getExitCode(),         // 3
-            new ConversionException(Paths.get("/tmp"), "").getExitCode(), // 4
-            new DependencyException("", "").getExitCode(), // 5
+            new ConversionException(Paths.get("/tmp"), "").getExitCode(), // 1
+            new DependencyException("", "").getExitCode(), // 6
             new PermissionException(Paths.get("/tmp"), PermissionException.PermissionType.WRITE).getExitCode(),     // 7
             new InsufficientStorageException(Paths.get("/tmp"), 100, 50).getExitCode() // 8
         };
