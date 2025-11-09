@@ -1,14 +1,20 @@
 package com.voicemail.cli;
 
-import com.voicemail.exception.ConfigurationException;
-import org.apache.commons.cli.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Pattern;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.voicemail.exception.ConfigurationException;
 
 /**
  * Parses and validates command-line arguments
@@ -376,16 +382,16 @@ public class CLIParser {
         String home = System.getProperty("user.home");
 
         if (os.contains("mac")) {
-            return Paths.get(home, "Library/Application Support/MobileSync/Backup");
+            return Paths.get(home, "Library", "Application Support", "MobileSync", "Backup");
         } else if (os.contains("win")) {
             String appData = System.getenv("APPDATA");
             if (appData == null) {
                 appData = home + "/AppData/Roaming";
             }
-            return Paths.get(appData, "Apple Computer/MobileSync/Backup");
+            return Paths.get(appData, "Apple Computer", "MobileSync", "Backup");
         } else {
             // Linux
-            return Paths.get(home, ".local/share/MobileSync/Backup");
+            return Paths.get(home, ".local", "share", "MobileSync", "Backup");
         }
     }
 
