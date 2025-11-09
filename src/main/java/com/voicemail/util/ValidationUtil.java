@@ -14,9 +14,7 @@ public class ValidationUtil {
         "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     );
     // Apple UUID format: 8-4-4-4-4 (e.g., 00008140-0001-688C-0213-001C)
-    private static final Pattern UDID_APPLE_UUID_PATTERN = Pattern.compile(
-        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}$"
-    );
+    private static final Pattern UDID_APPLE_UUID_PATTERN = Pattern.compile("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}");
 
     /**
      * Validate UDID format
