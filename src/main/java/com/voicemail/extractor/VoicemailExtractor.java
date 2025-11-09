@@ -83,7 +83,7 @@ public class VoicemailExtractor {
         Path tempDir = tempManager.getTempDirectory();
         FileExtractor extractor = new FileExtractor(backup.getBackupPath(), tempDir);
 
-        return extractor.extractVoicemailDb();
+        return extractor.extractVoicemailDb(manifestReader);
     }
 
     /**

@@ -88,9 +88,13 @@ class VoicemailConverterIntegrationTest {
         VoicemailConverter converter = new VoicemailConverter(args);
         int exitCode = converter.run();
 
-        // Then: Should handle no voicemails gracefully
-        // The mock backup structure is valid but doesn't contain extractable voicemails
-        assertEquals(5, exitCode, "Should exit with NoVoicemailsException when mock backup has no voicemails");
+        // Then: Should successfully convert voicemails
+        // The mock backup structure contains valid, extractable voicemails
+        assertEquals(0, exitCode, "Should successfully convert voicemails from mock backup");
+
+        // Verify output files were created
+        assertTrue(Files.exists(outputDir), "Output directory should exist");
+        assertTrue(Files.list(outputDir).findAny().isPresent(), "Output directory should contain files");
     }
 
     @Test
@@ -116,8 +120,12 @@ class VoicemailConverterIntegrationTest {
         VoicemailConverter converter = new VoicemailConverter(args);
         int exitCode = converter.run();
 
-        // Then: Should handle no voicemails gracefully even with --keep-originals
-        assertEquals(5, exitCode, "Should exit with NoVoicemailsException when mock backup has no voicemails");
+        // Then: Should successfully convert voicemails with --keep-originals
+        assertEquals(0, exitCode, "Should successfully convert voicemails with --keep-originals");
+
+        // Verify output files were created
+        assertTrue(Files.exists(outputDirWithBackup), "Output directory should exist");
+        assertTrue(Files.list(outputDirWithBackup).findAny().isPresent(), "Output directory should contain converted files");
     }
 
     @Test
@@ -143,8 +151,12 @@ class VoicemailConverterIntegrationTest {
         VoicemailConverter converter = new VoicemailConverter(args);
         int exitCode = converter.run();
 
-        // Then: Should handle no voicemails gracefully even with --include-metadata
-        assertEquals(5, exitCode, "Should exit with NoVoicemailsException when mock backup has no voicemails");
+        // Then: Should successfully convert voicemails with --include-metadata
+        assertEquals(0, exitCode, "Should successfully convert voicemails with --include-metadata");
+
+        // Verify output files were created
+        assertTrue(Files.exists(outputDirWithMetadata), "Output directory should exist");
+        assertTrue(Files.list(outputDirWithMetadata).findAny().isPresent(), "Output directory should contain files");
     }
 
     @Test

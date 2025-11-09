@@ -59,16 +59,26 @@ public class FileExtractor {
     }
 
     /**
-     * Extract voicemail.db to temp directory
+     * Extract voicemail.db to temp directory using ManifestDbReader
      */
-    public Path extractVoicemailDb() throws IOException {
+    public Path extractVoicemailDb(ManifestDbReader manifestReader) throws Exception {
         log.info("Extracting voicemail.db");
 
-        String hash = HashUtil.calculateBackupFileHash("Library-Voicemail", "voicemail.db");
-        Path extracted = extractFile(hash, "voicemail.db");
+        // Query voicemail.db from Manifest
+        ManifestDbReader.FileInfo voicemailDbInfo = manifestReader.queryVoicemailDbFile();
+
+        if (voicemailDbInfo == null) {
+            log.warn("voicemail.db not found in Manifest.db");
+            // List all voicemail-related files for debugging
+            manifestReader.listLibraryVoicemailFiles();
+            return null;
+        }
+
+        // Extract using the fileID from Manifest
+        Path extracted = extractFile(voicemailDbInfo.fileId, "voicemail.db");
 
         if (extracted == null) {
-            log.warn("voicemail.db not found in backup");
+            log.warn("voicemail.db file not found in backup directory");
             return null;
         }
 
